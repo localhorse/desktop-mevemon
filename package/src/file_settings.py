@@ -27,7 +27,8 @@ class Settings:
     def __init__(self, cfg_file=constants.CONFIG_PATH):
         self.cfg_file = cfg_file
         self.config = configobj.ConfigObj(self.cfg_file)
-        self._convert_gconf_to_cfgfile()
+        # windows chokes here
+        ##self._convert_gconf_to_cfgfile()
    
     def get_accounts(self):
         """ Returns a dictionary containing uid:api_key pairs gathered from the config file
