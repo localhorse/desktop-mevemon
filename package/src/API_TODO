@@ -1,0 +1,36 @@
+Tested custom API key, with access only to Wallet Balance. Generated
+the following error...
+
+"Error: Illegal page request! Please verify the access granted by the
+key you are using!"
+
+We need to check for this error - as well as checking beforehand what
+access they gives, as described here (Checking key access):
+
+http://www.eveonline.com/devblog.asp?a=blog&nbid=2319
+
+----
+
+2011-08-29 02:41:44,019 mevemon    DEBUG Logging successfully set-up.
+2011-08-29 02:43:27,325 mevemon    ERROR Failed to get character name
+Traceback (most recent call last):
+  File "./mevemon.py", line 106, in get_char_sheet
+    sheet = self.get_auth(kid).character(char_id).CharacterSheet()
+  File "/home/mothra/Projects/desktop-mevemon/package/src/eveapi/eveapi.py", line 252, in __call__
+    return self._root(self._path, **kw)
+  File "/home/mothra/Projects/desktop-mevemon/package/src/eveapi/eveapi.py", line 344, in __call__
+    return _ParseXML(response, True, store and (lambda obj: cache.store(self._host, path, kw, response, obj)))
+  File "/home/mothra/Projects/desktop-mevemon/package/src/eveapi/eveapi.py", line 188, in _ParseXML
+    raise Error(error.code, error.data)
+Error: Illegal page request! Please verify the access granted by the key you are using!
+2011-08-29 02:43:27,331 mevemon    ERROR Uncaught exception:
+Traceback (most recent call last):
+  File "/home/mothra/Projects/desktop-mevemon/package/src/ui/linux/gui.py", line 313, in do_charactersheet
+    CharacterSheetUI(self.controller, char_name, kid)
+  File "/home/mothra/Projects/desktop-mevemon/package/src/ui/linux/gui.py", line 329, in __init__
+    self.build_window()
+  File "/home/mothra/Projects/desktop-mevemon/package/src/ui/linux/gui.py", line 369, in build_window
+    self.fill_info(info_vbox)
+  File "/home/mothra/Projects/desktop-mevemon/package/src/ui/linux/gui.py", line 452, in fill_info
+    self.add_label("<big><big>%s</big></big>" % self.sheet.name, box)
+AttributeError: 'NoneType' object has no attribute 'name'
