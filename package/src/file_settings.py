@@ -3,6 +3,7 @@ import configobj
 import constants
 
 class Settings:
+    # this needs changin', no time right now though --danny
     """ Reads and writes settings to a config files based on the INI format.
         
         For example, a typical mEveMon config file (at '~/.mevemon/mevemon.cfg')will look like this:
@@ -40,35 +41,35 @@ class Settings:
             return account_dict
         
         for account in cfg_accounts:
-            account_dict[account['uid']] = account['apikey']
+            account_dict[account['kid']] = account['vcode']
 
         return account_dict
 
-    def get_api_key(self, uid):
-        """ Returns the api key associated with the given uid.
+    def get_vcode(self, kid):
+        """ Returns the verification code associated with the given kid.
         """
         try:
-            api_key = self.get_accounts()[uid]
-            return api_key
+            vcode = self.get_accounts()[kid]
+            return vcode
         except KeyError:
-            raise Exception("UID '%s' is not in settings") 
+            raise Exception("KID '%s' is not in settings") 
 
-    def add_account(self, uid, api_key):
-        """ Adds the provided uid:api_key pair to the config file.
+    def add_account(self, kid, vcode):
+        """ Adds the provided kid:vcode pair to the config file.
         """
         if 'accounts' not in self.config.sections:
             self.config['accounts'] = {}
 
-        self.config['accounts']['account.%s' % uid] = {}
-        self.config['accounts']['account.%s' % uid]['uid'] = uid
-        self.config['accounts']['account.%s' % uid]['apikey'] = api_key
+        self.config['accounts']['account.%s' % kid] = {}
+        self.config['accounts']['account.%s' % kid]['kid'] = kid
+        self.config['accounts']['account.%s' % kid]['vcode'] = vcode
         self.write()
 
-    def remove_account(self, uid):
-        """ Removes the provided uid key from the config file
+    def remove_account(self, kid):
+        """ Removes the provided kid key from the config file
         """
         for key in self.config['accounts']:
-            if self.config['accounts'][key]['uid'] == uid:
+            if self.config['accounts'][key]['kid'] == kid:
                 del self.config['accounts'][key]
                 self.write()
         
@@ -85,6 +86,6 @@ class Settings:
         """
         import gconf_settings
         gsettings = gconf_settings.Settings()
-        for uid, apikey in gsettings.get_accounts().items():
-            self.add_account(uid, apikey)
-            gsettings.remove_account(uid)
+        for kid, vcode in gsettings.get_accounts().items():
+            self.add_account(kid, vcode)
+            gsettings.remove_account(kid)

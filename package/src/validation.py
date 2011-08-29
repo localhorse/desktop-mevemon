@@ -1,5 +1,5 @@
 """ This module contains all our input validation functions """
-from constants import KEY_SIZE
+from constants import MIN_VCODE_SIZE, MAX_VCODE_SIZE
 
 class ValidationError(StandardError):
     """ Exception that is raised if input validation fails
@@ -13,26 +13,30 @@ class ValidationError(StandardError):
 
 
 
-def validate_api_key(api_key):
-    """ Validates an EVE api key. throws ValidationError exception if the
-        format is invalid.
+def validate_kid(kid):
+    """ Validates an EVE key ID. throws ValidationError exception if
+        the format is invalid.
     """
-    #TODO: anything else we can do to validate the api key?
+    # I don't know enough about the keyID yet. seems to be only numeric.
+    # The 2 I made were 705 and 706 respectively. I think they are
+    # just incrementing numbers. But I won't assume that yet...
     
-    if len(api_key) != KEY_SIZE:
-        raise ValidationError("API Key must be %s characters" % KEY_SIZE)
-    elif not api_key.isalnum():
-        raise ValidationError("API Key must only contain alphanumeric " +\
-                              "characters")
+    pass
 
 
-def validate_uid(uid):
-    """ Validates an EVE Online uid, throws ValidationError exception if the
-        format is invalid.
+def validate_vcode(vcode):
+    """ Validates an EVE Online verification code, throws
+        ValidationError exception if the format is invalid.
     """
-    #TODO: anything else we can do to validate the uid?
+    # What we DO know about the vcode is that it has to be
+    # at least 20 digits and at most 64. Seems to be
+    # alphanumeric only.
 
-    if not uid.isdigit():
-        raise ValidationError("UID must be a number")
-    if len(uid) < 1:
-        raise ValidationError("Missing UID")
+    if len(vcode) < MIN_VCODE_SIZE or len(vcode) > MAX_VCODE_SIZE:
+        raise ValidationError("Verification code must be from 20 to 64 "
+                              "characters.")
+    # too much? --danny
+    ##elif not vcode.isalnum():
+    ##    raise ValidationError("Verification code must contain only "
+    ##                          "alphanumeric characters.")
+

@@ -124,14 +124,14 @@ class BaseUI():
         return value
 
     def edit_account(self, treeview):
-        uid = self.get_selected_item(treeview, 0)
+        kid = self.get_selected_item(treeview, 0)
         # pop up the account dialog
 
         self.accounts_model.get_accounts()
 
     def delete_account(self, treeview):
-        uid = self.get_selected_item(treeview, 0)
-        self.controller.settings.remove_account(uid)
+        kid = self.get_selected_item(treeview, 0)
+        self.controller.settings.remove_account(kid)
         # refresh model
         self.accounts_model.get_accounts()
 
@@ -139,8 +139,8 @@ class BaseUI():
     def add_columns_to_accounts(self, treeview):
         #Column 0 for the treeview
         renderer = gtk.CellRendererText()
-        column = gtk.TreeViewColumn('User ID', renderer, 
-                text=models.AccountsModel.C_UID)
+        column = gtk.TreeViewColumn('Key ID', renderer, 
+                text=models.AccountsModel.C_KID)
         column.set_property("expand", True)
         treeview.append_column(column)
 
@@ -160,23 +160,23 @@ class BaseUI():
         dialog.set_transient_for(window)
         dialog.set_title("New Account")
 
-        uidLabel = gtk.Label("User ID:")
-        uidLabel.set_justify(gtk.JUSTIFY_LEFT)
-        vbox.add(uidLabel)
+        kidLabel = gtk.Label("Key ID:")
+        kidLabel.set_justify(gtk.JUSTIFY_LEFT)
+        vbox.add(kidLabel)
         
-        uidEntry = gtk.Entry()
-        uidEntry.set_property('is_focus', False)
+        kidEntry = gtk.Entry()
+        kidEntry.set_property('is_focus', False)
         
-        vbox.add(uidEntry)
+        vbox.add(kidEntry)
 
-        apiLabel = gtk.Label("API key:")
-        apiLabel.set_justify(gtk.JUSTIFY_LEFT)
-        vbox.add(apiLabel)
+        vcodeLabel = gtk.Label("Verification code:")
+        vcodeLabel.set_justify(gtk.JUSTIFY_LEFT)
+        vbox.add(vcodeLabel)
         
-        apiEntry = gtk.Entry()
-        apiEntry.set_property('is_focus', False)
+        vcodeEntry = gtk.Entry()
+        vcodeEntry.set_property('is_focus', False)
 
-        vbox.add(apiEntry)
+        vbox.add(vcodeEntry)
        
         ok_button = dialog.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
         cancel_button = dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
@@ -188,18 +188,18 @@ class BaseUI():
 
         while not valid_credentials:
             if result == gtk.RESPONSE_OK:
-                uid = uidEntry.get_text()
-                api_key = apiEntry.get_text()
+                kid = kidEntry.get_text()
+                vcode = vcodeEntry.get_text()
             
                 try:
-                    validation.validate_uid(uid)
-                    validation.validate_api_key(api_key)
+                    validation.validate_kid(kid)
+                    validation.validate_vcode(vcode)
                 except validation.ValidationError, e:
                     self.report_error(e.message)
                     result = dialog.run()
                 else:
                     valid_credentials = True
-                    self.controller.settings.add_account(uid, api_key)
+                    self.controller.settings.add_account(kid, vcode)
                     self.accounts_model.get_accounts()
             else:
                 break
@@ -307,10 +307,10 @@ class mEveMonUI(BaseUI):
         
         # column 0 is the portrait, column 1 is name
         char_name = model.get_value(miter, 1)
-        uid = model.get_value(miter, 2)
+        kid = model.get_value(miter, 2)
         
-        if uid:
-            CharacterSheetUI(self.controller, char_name, uid)
+        if kid:
+            CharacterSheetUI(self.controller, char_name, kid)
         else:
             pass
 
@@ -318,10 +318,10 @@ class CharacterSheetUI(BaseUI):
     #time between live sp updates (in milliseconds)
     UPDATE_INTERVAL = 1000
 
-    def __init__(self, controller, char_name, uid):
+    def __init__(self, controller, char_name, kid):
         self.controller = controller
         self.char_name = char_name
-        self.uid = uid
+        self.kid = kid
         self.sheet = None
         self.char_id = None
         self.skills_model = None
@@ -348,7 +348,7 @@ class CharacterSheetUI(BaseUI):
 
         self.char_id = self.controller.char_name2id(self.char_name)
 
-        self.sheet = self.controller.get_char_sheet(self.uid, self.char_id)
+        self.sheet = self.controller.get_char_sheet(self.kid, self.char_id)
 
         self.win.set_title(self.char_name)
 
@@ -413,7 +413,7 @@ class CharacterSheetUI(BaseUI):
         gtk.Window.destroy(self.win)
 
     def display_skill_in_training(self, vbox):
-        skill = self.controller.get_skill_in_training(self.uid, self.char_id)
+        skill = self.controller.get_skill_in_training(self.kid, self.char_id)
         
         if skill.skillInTraining:
 
@@ -457,11 +457,11 @@ class CharacterSheetUI(BaseUI):
         self.add_label("<small><b>Balance:</b> %s ISK</small>" % 
                 util.comma(self.sheet.balance), box)
 
-        self.live_sp_val = self.controller.get_sp(self.uid, self.char_id)
+        self.live_sp_val = self.controller.get_sp(self.kid, self.char_id)
         self.live_sp = self.add_label("<small><b>Total SP:</b> %s</small>" %
                 util.comma(int(self.live_sp_val)), box)
         
-        self.spps = self.controller.get_spps(self.uid, self.char_id)[0]
+        self.spps = self.controller.get_spps(self.kid, self.char_id)[0]
 
 
     def fill_stats(self, box):

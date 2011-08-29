@@ -22,5 +22,6 @@ ABOUT_AUTHORS = ['Ryan Campbell <campbellr@gmail.com>',
 ABOUT_WEBSITE = 'http://mevemon.garage.maemo.org'
 APP_VERSION = '0.5-1'
 
-# size of a valid api key
-KEY_SIZE = 64
+# size of a valid verification code
+MIN_VCODE_SIZE = 20
+MAX_VCODE_SIZE = 64
