@@ -41,35 +41,35 @@ class Settings:
             return account_dict
         
         for account in cfg_accounts:
-            account_dict[account['kid']] = account['vcode']
+            account_dict[account['key_id']] = account['ver_code']
 
         return account_dict
 
-    def get_vcode(self, kid):
-        """ Returns the verification code associated with the given kid.
+    def get_ver_code(self, key_id):
+        """ Returns the verification code associated with the given key_id.
         """
         try:
-            vcode = self.get_accounts()[kid]
-            return vcode
+            ver_code = self.get_accounts()[key_id]
+            return ver_code
         except KeyError:
-            raise Exception("KID '%s' is not in settings") 
+            raise Exception("KEY_ID '%s' is not in settings") 
 
-    def add_account(self, kid, vcode):
-        """ Adds the provided kid:vcode pair to the config file.
+    def add_account(self, key_id, ver_code):
+        """ Adds the provided key_id:ver_code pair to the config file.
         """
         if 'accounts' not in self.config.sections:
             self.config['accounts'] = {}
 
-        self.config['accounts']['account.%s' % kid] = {}
-        self.config['accounts']['account.%s' % kid]['kid'] = kid
-        self.config['accounts']['account.%s' % kid]['vcode'] = vcode
+        self.config['accounts']['account.%s' % key_id] = {}
+        self.config['accounts']['account.%s' % key_id]['key_id'] = key_id
+        self.config['accounts']['account.%s' % key_id]['ver_code'] = ver_code
         self.write()
 
-    def remove_account(self, kid):
-        """ Removes the provided kid key from the config file
+    def remove_account(self, key_id):
+        """ Removes the provided key_id key from the config file
         """
         for key in self.config['accounts']:
-            if self.config['accounts'][key]['kid'] == kid:
+            if self.config['accounts'][key]['key_id'] == key_id:
                 del self.config['accounts'][key]
                 self.write()
         
@@ -86,6 +86,6 @@ class Settings:
         """
         import gconf_settings
         gsettings = gconf_settings.Settings()
-        for kid, vcode in gsettings.get_accounts().items():
-            self.add_account(kid, vcode)
-            gsettings.remove_account(kid)
+        for key_id, ver_code in gsettings.get_accounts().items():
+            self.add_account(key_id, ver_code)
+            gsettings.remove_account(key_id)

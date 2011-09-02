@@ -23,5 +23,5 @@ ABOUT_WEBSITE = 'http://mevemon.garage.maemo.org'
 APP_VERSION = '0.5-1'
 
 # size of a valid verification code
-MIN_VCODE_SIZE = 20
-MAX_VCODE_SIZE = 64
+MIN_VER_CODE_SIZE = 20
+MAX_VER_CODE_SIZE = 64

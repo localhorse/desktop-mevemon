@@ -83,14 +83,14 @@ class mEveMon:
     def quit(self, *args):
         gtk.main_quit()
 
-    def get_auth(self, kid):
+    def get_auth(self, key_id):
         """ Returns an authentication object to be used for eveapi calls
             that require authentication.
         """
-        vcode = self.settings.get_vcode(kid)
+        ver_code = self.settings.get_ver_code(key_id)
 
         try:
-            auth = self.cached_api.auth(keyID=kid, vCode=vcode)
+            auth = self.cached_api.auth(keyID=key_id, vCode=ver_code)
         except Exception, e:
             self.gui.report_error(str(e))
             logging.getLogger('mevemon').exception("Failed to get character name")
@@ -98,12 +98,12 @@ class mEveMon:
 
         return auth
 
-    def get_char_sheet(self, kid, char_id):
+    def get_char_sheet(self, key_id, char_id):
         """ Returns an object containing information about the character specified
             by the provided character ID.
         """
         try:
-            sheet = self.get_auth(kid).character(char_id).CharacterSheet()
+            sheet = self.get_auth(key_id).character(char_id).CharacterSheet()
         except Exception, e:
             self.gui.report_error(str(e))
             logging.getLogger('mevemon').exception("Failed to get character name")
@@ -111,7 +111,7 @@ class mEveMon:
 
         return sheet
 
-    def charid2kid(self, char_id):
+    def char_id_to_key_id(self, char_id):
         """ Takes a character ID and returns the user ID of the account containing
             the character.
 
@@ -120,10 +120,10 @@ class mEveMon:
         """
         acct_dict = self.settings.get_accounts()
         
-        for kid, vcode in acct_dict.items():
+        for key_id, ver_code in acct_dict.items():
             # ugh - change this var name...
             # vcode is too close to vCode
-            auth = self.cached_api.auth(keyID=kid, vCode=vcode)
+            auth = self.cached_api.auth(keyID=key_id, vCode=ver_code)
             try:
                 api_char_list = auth.account.Characters()
                 characters = api_char_list.characters
@@ -132,10 +132,10 @@ class mEveMon:
 
             for character in characters:
                 if character.characterID == char_id:
-                    return kid
+                    return key_id
 
     
-    def char_id2name(self, char_id):
+    def char_id_to_name(self, char_id):
         """ Takes a character ID and returns the character name associated with
             that ID.
             The EVE API accepts a comma-separated list of IDs, but for now we
@@ -151,7 +151,7 @@ class mEveMon:
 
         return name
 
-    def char_name2id(self, name):
+    def char_name_to_id(self, name):
         """ Takes the name of an EVE character and returns the characterID.
         
             The EVE api accepts a comma separated list of names, but for now
@@ -168,10 +168,10 @@ class mEveMon:
 
         return char_id
 
-    def get_chars_from_acct(self, kid):
+    def get_chars_from_acct(self, key_id):
         """ Returns a list of characters associated with the provided user ID.
         """
-        auth = self.get_auth(kid)
+        auth = self.get_auth(key_id)
         if not auth:
             return None
         else:
@@ -205,23 +205,23 @@ class mEveMon:
         if not acct_dict:
             return [placeholder_chars]
 
-        for kid in acct_dict.keys():
-            char_names = self.get_chars_from_acct(kid)
+        for key_id in acct_dict.keys():
+            char_names = self.get_chars_from_acct(key_id)
             
             if not char_names:
-                ui_char_list.append((err_txt + "\t(KID: %s)" % kid, err_img, None))
+                ui_char_list.append((err_txt + "\t(KEY_ID: %s)" % key_id, err_img, None))
             else:
                 # append each char we get to the list we'll return to the
                 # UI --danny
                 for char_name in char_names:
-                    ui_char_list.append((char_name, self.get_portrait(char_name, 64) , kid) )
+                    ui_char_list.append((char_name, self.get_portrait(char_name, 64) , key_id) )
         
         return ui_char_list
 
     def get_portrait(self, char_name, size):
         """ Returns the file path of the retrieved portrait
         """
-        char_id = self.char_name2id(char_name)
+        char_id = self.char_name_to_id(char_name)
         
         return fetchimg.portrait_filename(char_id, size)
 
@@ -237,12 +237,12 @@ class mEveMon:
         
         return tree
 
-    def get_skill_in_training(self, kid, char_id):
+    def get_skill_in_training(self, key_id, char_id):
         """ Returns an object from eveapi containing information about the
             current skill in training
         """
         try:
-            skill = self.get_auth(kid).character(char_id).SkillInTraining()
+            skill = self.get_auth(key_id).character(char_id).SkillInTraining()
         except Exception, e:
             self.gui.report_error(str(e))
             logging.getLogger('mevemon').exception("Failed to get skill-in-training:")
@@ -269,24 +269,24 @@ class mEveMon:
         assert(connection.request_connection(conic.CONNECT_FLAG_NONE))
 
 
-    def get_sp(self, kid, char_id):
+    def get_sp(self, key_id, char_id):
         """ Adds up the SP for all known skills, then calculates the SP gained
             from an in-training skill.
         """
         actual_sp = 0
         
-        sheet = self.get_char_sheet(kid, char_id)
+        sheet = self.get_char_sheet(key_id, char_id)
         for skill in sheet.skills:
             actual_sp += skill.skillpoints
 
-        live_sp = actual_sp + self.get_training_sp(kid, char_id)
+        live_sp = actual_sp + self.get_training_sp(key_id, char_id)
 
         return live_sp
 
-    def get_spps(self, kid, char_id):
+    def get_spps(self, key_id, char_id):
         """ Calculate and returns the skill points per hour for the given character.
         """
-        skill = self.get_skill_in_training(kid, char_id)
+        skill = self.get_skill_in_training(key_id, char_id)
         
         if not skill.skillInTraining:
             return (0, 0)
@@ -298,10 +298,10 @@ class mEveMon:
     
         return (spps, skill.trainingStartTime)
 
-    def get_training_sp(self, kid, char_id):
+    def get_training_sp(self, key_id, char_id):
         """ returns the additional SP that the in-training skill has acquired
         """
-        spps_tuple = self.get_spps(kid, char_id)
+        spps_tuple = self.get_spps(key_id, char_id)
         
         if not spps_tuple:
             return 0

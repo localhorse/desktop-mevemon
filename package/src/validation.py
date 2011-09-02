@@ -1,5 +1,5 @@
 """ This module contains all our input validation functions """
-from constants import MIN_VCODE_SIZE, MAX_VCODE_SIZE
+from constants import MIN_VER_CODE_SIZE, MAX_VER_CODE_SIZE
 
 class ValidationError(StandardError):
     """ Exception that is raised if input validation fails
@@ -13,7 +13,7 @@ class ValidationError(StandardError):
 
 
 
-def validate_kid(kid):
+def validate_key_id(key_id):
     """ Validates an EVE key ID. throws ValidationError exception if
         the format is invalid.
     """
@@ -24,19 +24,19 @@ def validate_kid(kid):
     pass
 
 
-def validate_vcode(vcode):
+def validate_ver_code(ver_code):
     """ Validates an EVE Online verification code, throws
         ValidationError exception if the format is invalid.
     """
-    # What we DO know about the vcode is that it has to be
+    # What we DO know about the ver_code is that it has to be
     # at least 20 digits and at most 64. Seems to be
     # alphanumeric only.
 
-    if len(vcode) < MIN_VCODE_SIZE or len(vcode) > MAX_VCODE_SIZE:
+    if len(ver_code) < MIN_VER_CODE_SIZE or len(ver_code) > MAX_VER_CODE_SIZE:
         raise ValidationError("Verification code must be from 20 to 64 "
                               "characters.")
     # too much? --danny
-    ##elif not vcode.isalnum():
+    ##elif not ver_code.isalnum():
     ##    raise ValidationError("Verification code must contain only "
     ##                          "alphanumeric characters.")
 
