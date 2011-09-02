@@ -25,6 +25,16 @@
 # OTHER DEALINGS IN THE SOFTWARE
 #
 #-----------------------------------------------------------------------------
+# Version: 1.1.9 - 2 September 2011
+# - added workaround for row tags with attributes that were not defined
+#   in their rowset (this should fix AssetList)
+#
+# Version: 1.1.8 - 1 September 2011
+# - fix for inconsistent columns attribute in rowsets.
+#
+# Version: 1.1.7 - 1 September 2011
+# - auth() method updated to work with the new authentication scheme.
+#
 # Version: 1.1.6 - 27 May 2011
 # - Now supports composite keys for IndexRowsets.
 # - Fixed calls not working if a path was specified in the root url.
@@ -132,7 +142,7 @@ def EVEAPIConnection(url="api.eveonline.com", cacheHandler=None, proxy=None):
 	#          Called when eveapi wants to fetch a document.
 	#          host is the address of the server, path is the full path to
 	#          the requested document, and params is a dict containing the
-	#          parameters passed to this api call (userID, apiKey etc).
+	#          parameters passed to this api call (keyID, vCode, etc).
 	#          The method MUST return one of the following types:
 	#
 	#           None - if your cache did not contain this entry
@@ -267,14 +277,10 @@ class _AuthContext(_Context):
 
 class _RootContext(_Context):
 
-	def auth(self, userID=None, apiKey=None, keyID=None, vCode=None):
-		# returns a copy of this object but for every call made through it, the
-		# userID and apiKey or keyID and vCode will be added to the API request.
-		if userID and apiKey:
-			return _AuthContext(self._root, self._path, self.parameters, {"userID":userID, "apiKey":apiKey})
-		if keyID and vCode:
-			return _AuthContext(self._root, self._path, self.parameters, {"keyID":keyID, "vCode":vCode})
-		raise ValueError("Must specify userID and apiKey or keyID and vCode")
+	def auth(self, **kw):
+		if len(kw) == 2 and (("keyID" in kw and "vCode" in kw) or ("userID" in kw and "apiKey" in kw)):
+			return _AuthContext(self._root, self._path, self.parameters, kw)
+		raise ValueError("Must specify keyID and vCode")
 
 	def setcachehandler(self, handler):
 		self._root._handler = handler
@@ -420,7 +426,7 @@ class _Parser(object):
 		if name == "rowset":
 			# for rowsets, use the given name
 			try:
-				columns = attributes[attributes.index('columns')+1].split(",")
+				columns = attributes[attributes.index('columns')+1].replace(" ", "").split(",")
 			except ValueError:
 				# rowset did not have columns tag set (this is a bug in API)
 				# columns will be extracted from first row instead.
@@ -449,9 +455,15 @@ class _Parser(object):
 			self.root = this
 
 		if isinstance(self.container, Rowset) and (self.container.__catch == this._name):
-			# check for missing columns attribute (see above)
-			if not self.container._cols:
+			# <hack>
+			# - check for missing columns attribute (see above)
+			# - check for extra attributes that were not defined in the rowset,
+			#   such as rawQuantity in the assets lists.
+			# In either case the tag is assumed to be correct and the rowset's
+			# columns are overwritten with the tag's version.
+			if not self.container._cols or (len(attributes)/2 > len(self.container._cols)):
 				self.container._cols = attributes[0::2]
+			# </hack>
 
 			self.container.append([_autocast(attributes[i], attributes[i+1]) for i in xrange(0, len(attributes), 2)])
 			this._isrow = True
