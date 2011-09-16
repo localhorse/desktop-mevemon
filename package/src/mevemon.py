@@ -51,6 +51,7 @@ import apicache
 import file_settings as settings
 from constants import LOGPATH, MAXBYTES, LOGCOUNT, CONFIG_DIR, IMG_CACHE_PATH
 from constants import APICACHE_PATH
+from constants import REQUIRED_ACCESS_MASK
 
 # ugly hack to check maemo version. any better way?
 if on_maemo:
@@ -61,6 +62,7 @@ if on_maemo:
 elif on_windows:
     from ui.windows import gui
 else:
+    # linux is the only one that will currently work --danny
     from ui.linux import gui
 
 class mEveMon:
@@ -72,7 +74,7 @@ class mEveMon:
             self.program = hildon.Program()
             self.connect_to_network()
         self.settings = settings.Settings()
-        self.cached_api = eveapi.EVEAPIConnection( cacheHandler = \
+        self.cached_api = eveapi.EVEAPIConnection(cacheHandler = \
                 apicache.cache_handler(debug=False))
         self.gui = gui.mEveMonUI(self)
         self.gui.run()
@@ -93,6 +95,7 @@ class mEveMon:
             auth = self.cached_api.auth(keyID=key_id, vCode=ver_code)
         except Exception, e:
             self.gui.report_error(str(e))
+            # I think this error is wrong! --danny
             logging.getLogger('mevemon').exception("Failed to get character name")
             return None
 
@@ -177,13 +180,14 @@ class mEveMon:
         else:
             try:
                 api_char_list = auth.account.Characters()
-                char_list = [char.name for char in api_char_list.characters]
+                char_name_list = [char.name for char in api_char_list.characters]
+                char_id_list = [char.characterID for char in api_char_list.characters]
             except Exception, e:
                 self.gui.report_error(str(e))
                 logging.getLogger('mevemon').exception("Failed to get character list")
                 return None
 
-        return char_list
+        return (char_name_list, char_id_list)
 
     def get_characters(self):
         # needs changin' --danny
@@ -197,7 +201,9 @@ class mEveMon:
         ui_char_list = []
         ##err_img = "/usr/share/mevemon/imgs/error.jpg"
         err_img = "./imgs/error.jpg"
-        err_txt = "Problem fetching info for account (or no accounts added)"
+        err_txt = "Problem fetching info for account (or no accounts added)."
+        ##bad_key = "Incorrect key access. Please generate a key: %s"
+        bad_key = "Incorrect key access. Your access mask should be %s." % REQUIRED_ACCESS_MASK
 
         placeholder_chars = (err_txt, err_img, None)
         
@@ -205,16 +211,25 @@ class mEveMon:
         if not acct_dict:
             return [placeholder_chars]
 
-        for key_id in acct_dict.keys():
-            char_names = self.get_chars_from_acct(key_id)
+        for key_id, ver_code in acct_dict.items():
+            char_names, char_ids = self.get_chars_from_acct(key_id)
             
             if not char_names:
                 ui_char_list.append((err_txt + "\t(KEY_ID: %s)" % key_id, err_img, None))
             else:
-                # append each char we get to the list we'll return to the
-                # UI --danny
-                for char_name in char_names:
-                    ui_char_list.append((char_name, self.get_portrait(char_name, 64) , key_id) )
+                # since there are char names, let's check the key
+                # access and if it's bad we'll generate a key URL for
+                # each character
+                for char_name, char_id in zip(char_names, char_ids):
+                    if self.get_access_mask(key_id, ver_code) != REQUIRED_ACCESS_MASK:
+                        key_url = self.generate_access_mask_url(char_id)
+                        ##ui_char_list.append((bad_key % key_url, self.get_portrait(char_name, 64), key_id))
+                        ui_char_list.append((bad_key, err_img, None))                        
+                    else:
+                        # append each char we get to the list we'll
+                        # return to the UI --danny
+                        for char_name in char_names:
+                            ui_char_list.append((char_name, self.get_portrait(char_name, 64), key_id))
         
         return ui_char_list
 
@@ -242,6 +257,7 @@ class mEveMon:
             current skill in training
         """
         try:
+            # should this be accessing the cached object? (confused) --danny
             skill = self.get_auth(key_id).character(char_id).SkillInTraining()
         except Exception, e:
             self.gui.report_error(str(e))
@@ -258,10 +274,12 @@ class mEveMon:
 
 
     def connect_to_network(self):
-        """ This will connect to the default network if avaliable, or pop up the
-            connection dialog to select a connection.
-            Running this when we start the program ensures we are connected to a
-            network.
+        """
+        This will connect to the default network if avaliable, or pop
+        up the connection dialog to select a connection.  Running this
+        when we start the program ensures we are connected to a
+        network.
+
         """
         connection = conic.Connection()
         #why 0xAA55?
@@ -270,8 +288,10 @@ class mEveMon:
 
 
     def get_sp(self, key_id, char_id):
-        """ Adds up the SP for all known skills, then calculates the SP gained
-            from an in-training skill.
+        """
+        Adds up the SP for all known skills, then calculates the SP
+        gained from an in-training skill.
+
         """
         actual_sp = 0
         
@@ -284,7 +304,10 @@ class mEveMon:
         return live_sp
 
     def get_spps(self, key_id, char_id):
-        """ Calculate and returns the skill points per hour for the given character.
+        """
+        Calculate and returns the skill points per hour for the given
+        character.
+
         """
         skill = self.get_skill_in_training(key_id, char_id)
         
@@ -299,7 +322,9 @@ class mEveMon:
         return (spps, skill.trainingStartTime)
 
     def get_training_sp(self, key_id, char_id):
-        """ returns the additional SP that the in-training skill has acquired
+        """
+        returns the additional SP that the in-training skill has
+        acquired
         """
         spps_tuple = self.get_spps(key_id, char_id)
         
@@ -318,6 +343,22 @@ class mEveMon:
             util.clean_dir(APICACHE_PATH)
         except OSError, e:
             logging.getLogger('mevemon').exception("Failed to clear cache")
+
+    def get_access_mask(self, key_id, ver_code):
+        """
+        Returns the access mask that determines what data we have
+        access to on the account.
+        
+        """
+        return self.cached_api.account.APIKeyInfo(keyID=key_id, vCode=ver_code).key.accessMask
+
+    def generate_access_mask_url(self, char_id):
+        """
+        Generates a URL to send the user to the page that will help
+        them create an access key with exactly the access mevemon
+        needs.
+        """
+        return "https://supporttest.eveonline.com/api/Key/CreatePredefined/%s/%s/false" % (REQUIRED_ACCESS_MASK, char_id)
 
 def excepthook(ex_type, value, tb):
     """ a replacement for the default exception handler that logs errors"""

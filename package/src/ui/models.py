@@ -21,7 +21,7 @@ class AccountsModel(gtk.ListStore):
 
         for key_id, key in accts_dict.items():
             liter = self.append()
-            chars = self.controller.get_chars_from_acct(key_id)
+            chars, ids = self.controller.get_chars_from_acct(key_id)
             if chars:
                 char_str = ', '.join(chars)
                 char_str = "<small>%s</small>" % char_str
